@@ -2,13 +2,15 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 
+from taggit.managers import TaggableManager
+
 
 class Organization(models.Model):
     name = models.TextField()
     members = models.ManyToManyField(User, through="UserMembership")
 
     def __str__(self):
-        return self.name
+        return self.name.__str__()
 
 
 class UserMembership(models.Model):
@@ -22,31 +24,42 @@ class UserMembership(models.Model):
     status = models.CharField(max_length=1, choices=UserRole.choices, default=UserRole.MEMBER)
 
 
-class Node(models.Model):
-    class NodeStatus(models.TextChoices):
-        OFFLINE = 'O', _('Offline')
-        IDLE = 'I', _('Idle')
-        BUSY = 'B', _('Busy')
-
+class Device(models.Model):
     name = models.TextField()
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
-    status = models.CharField(max_length=1, choices=NodeStatus.choices, default=NodeStatus.OFFLINE)
-    last_status_update = models.DateTimeField()
 
     def __str__(self):
-        return self.name
+        return self.name.__str__()
 
 
 class Board(models.Model):
-    class BoardStatus(models.TextChoices):
+    name = models.TextField()
+    path = models.TextField()
+    device = models.ForeignKey(Device, on_delete=models.CASCADE)
+    tags = TaggableManager()
+
+    def __str__(self):
+        return self.name.__str__()
+
+
+class BoardStatus(models.Model):
+    class eBoardStatus(models.TextChoices):
         NOT_CONNECTED = 'N', _('Not connected')
         IDLE = 'I', _('Idle')
         BUSY = 'B', _('Busy')
 
-    name = models.TextField()
-    path = models.TextField()
-    node = models.ForeignKey(Node, on_delete=models.CASCADE)
-    status = models.CharField(max_length=1, choices=BoardStatus.choices, default=BoardStatus.NOT_CONNECTED)
+    device = models.ForeignKey(Device, on_delete=models.CASCADE)
+    status = models.CharField(max_length=1, choices=eBoardStatus.choices, default=eBoardStatus.NOT_CONNECTED)
+    last_update = models.DateTimeField()
 
-    def __str__(self):
-        return self.name
+
+class Run(models.Model):
+    class eRunStatus(models.TextChoices):
+        WAITING = 'W', _('Waiting')
+        RUNNING = 'R', _('Running')
+        DONE = 'D', _('Done')
+
+    board_status = models.ForeignKey(BoardStatus, on_delete=models.CASCADE, null=True)
+    status = models.CharField(max_length=1, choices=eRunStatus.choices, default=eRunStatus.WAITING)
+    file = models.FileField(upload_to='uploads/')
+    tags = TaggableManager()
