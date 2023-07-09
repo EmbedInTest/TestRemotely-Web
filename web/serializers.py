@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Device, Board, BoardStatus, Run
+from .models import Device, Board, BoardStatus, Run, RunStatus
 
 
 class DeviceSerializer(serializers.ModelSerializer):
@@ -18,6 +18,15 @@ class DeviceFilteredPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
         return queryset
 
 
+class DeviceStatusSerializer(serializers.ModelSerializer):
+    device = DeviceFilteredPrimaryKeyRelatedField()
+    last_update = serializers.ReadOnlyField()
+
+    class Meta:
+        model = BoardStatus
+        fields = ['url', 'id', 'device', 'status', 'last_update']
+
+
 class BoardSerializer(serializers.ModelSerializer):
     status = serializers.HyperlinkedRelatedField(many=True, view_name='boardstatus-detail', read_only=True)
     device = DeviceFilteredPrimaryKeyRelatedField()
@@ -28,6 +37,9 @@ class BoardSerializer(serializers.ModelSerializer):
 
 
 class BoardFilteredPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def get_queryset(self):
         user = self.context.get('request').user
         queryset = Board.objects.filter(device__owner=user)
@@ -43,18 +55,27 @@ class BoardStatusSerializer(serializers.ModelSerializer):
         fields = ['url', 'id', 'board', 'status', 'last_update']
 
 
-class BoardStatusFilteredPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
-    def get_queryset(self):
-        user = self.context.get('request').user
-        queryset = BoardStatus.objects.filter(board__device__owner=user)
-        return queryset
-
-
 class RunSerializer(serializers.ModelSerializer):
-    board_status = BoardStatusFilteredPrimaryKeyRelatedField()
     triggerer = serializers.ReadOnlyField(source='owner.username')
     dispatched_at = serializers.ReadOnlyField()
+    board = BoardFilteredPrimaryKeyRelatedField(allow_null=True, required=False)
 
     class Meta:
         model = Run
-        fields = ['url', 'id', 'board_status', 'triggerer', 'status', 'file', 'dispatched_at']
+        fields = ['url', 'id', 'triggerer', 'file', 'dispatched_at', 'board']
+
+
+class RunFilteredPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
+    def get_queryset(self):
+        user = self.context.get('request').user
+        queryset = Run.objects.filter(triggerer=user)
+        return queryset
+
+
+class RunStatusSerializer(serializers.ModelSerializer):
+    run = RunFilteredPrimaryKeyRelatedField()
+    last_update = serializers.ReadOnlyField()
+
+    class Meta:
+        model = RunStatus
+        fields = ['url', 'id', 'run', 'status', 'last_update']

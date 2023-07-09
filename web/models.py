@@ -35,6 +35,19 @@ class Device(models.Model):
         return f"(device: {self.name} from {self.owner})"
 
 
+class DeviceStatus(models.Model):
+    class eDeviceStatus(models.TextChoices):
+        OFFLINE = 'F', _('Offline')
+        ONLINE = 'L', _('Online')
+
+    device = models.ForeignKey(Device, related_name='status', on_delete=models.CASCADE)
+    status = models.CharField(max_length=1, choices=eDeviceStatus.choices, default=eDeviceStatus.OFFLINE)
+    last_update = models.DateTimeField()
+
+    def __str__(self):
+        return f"(device status: {self.device}, status: {self.status}, last update: {self.last_update})"
+
+
 class Board(models.Model):
     name = models.TextField()
     path = models.TextField()
@@ -63,9 +76,10 @@ class Run(models.Model):
     file = models.FileField(upload_to='uploads/')
     tags = TaggableManager()
     dispatched_at = models.DateTimeField(default=now)
+    board = models.ForeignKey(Board, related_name='runs', on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
-        return f"(run: triggerer: {self.triggerer}, dispatched at: {self.dispatched_at})"
+        return f"(run: triggerer: {self.triggerer}, dispatched at: {self.dispatched_at}, to board: {self.board})"
 
 
 class RunStatus(models.Model):
@@ -79,12 +93,3 @@ class RunStatus(models.Model):
 
     def __str__(self):
         return f"(run status: {self.run}, status: {self.status}, last update: {self.last_update})"
-
-
-class Run2Board(models.Model):
-    board = models.ForeignKey(Board, related_name='run', on_delete=models.CASCADE)
-    run = models.ForeignKey(Run, related_name='board', on_delete=models.CASCADE)
-    last_update = models.DateTimeField()
-
-    def __str__(self):
-        return f"(board status: {self.board}, run: {self.run}, last update: {self.last_update})"

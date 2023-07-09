@@ -21,9 +21,11 @@ from web import views
 
 router = DefaultRouter()
 router.register(r'devices', views.DeviceViewSet, basename="device")
+router.register(r'devicestatus', views.DeviceStatusViewSet, basename="devicestatus")
 router.register(r'boards', views.BoardViewSet, basename="board")
 router.register(r'boardstatus', views.BoardStatusViewSet, basename="boardstatus")
-router.register(r'run', views.RunStatusViewSet, basename="run")
+router.register(r'run', views.RunViewSet, basename="run")
+router.register(r'runstatus', views.RunStatusViewSet, basename="runstatus")
 
 
 urlpatterns = [
